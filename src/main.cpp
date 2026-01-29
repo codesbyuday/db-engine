@@ -2,79 +2,108 @@
 #include "pager.hpp"
 
 #include <iostream>
-#include <chrono>
 #include <cstring>
 
 int main() {
     const char* db_file = "mydb.db";
-    const uint32_t page_id = 5;
+    const uint32_t page_id = 1;
 
-    std::cout << "==============================\n";
-    std::cout << "  Mini Database Storage Engine\n";
-    std::cout << "==============================\n\n";
+    std::cout << "===============================\n";
+    std::cout << " Slot Reuse Test (Storage Layer)\n";
+    std::cout << "===============================\n\n";
 
-    /* ---------------- WRITE PHASE ---------------- */
-    std::cout << "[WRITE PHASE]\n";
-
-    uint8_t write_buffer[PAGE_SIZE];
-    std::memset(write_buffer, 0, PAGE_SIZE);
-
-    auto write_start = std::chrono::high_resolution_clock::now();
+    
+    // WRITE PHASE
+    
+    uint8_t buffer[PAGE_SIZE];
+    std::memset(buffer, 0, PAGE_SIZE);
 
     {
         Pager pager(db_file);
 
-        std::cout << "Initializing page " << page_id << "...\n";
-        page_init(write_buffer, page_id, PageType::DataPage);
+        // Initialize page
+        page_init(buffer, page_id, PageType::DataPage);
 
-        std::cout << "Writing page to disk...\n";
-        pager.write_page(page_id, write_buffer);
-    } // pager goes out of scope → file closed
+        // Insert Records A, B, C
+        const char* recA = "Record-A";
+        const char* recB = "Record-B";
+        const char* recC = "Record-C";
 
-    auto write_end = std::chrono::high_resolution_clock::now();
-    auto write_time =
-        std::chrono::duration_cast<std::chrono::microseconds>(write_end - write_start);
+        int slotA = insert_record(buffer,
+                                  reinterpret_cast<const uint8_t*>(recA),
+                                  strlen(recA) + 1);
 
-    std::cout << "Write completed successfully.\n";
-    std::cout << "Write time: " << write_time.count() << " microsecond\n\n";
+        int slotB = insert_record(buffer,
+                                  reinterpret_cast<const uint8_t*>(recB),
+                                  strlen(recB) + 1);
 
-    /* ---------------- READ PHASE ---------------- */
-    std::cout << "[READ PHASE]\n";
+        int slotC = insert_record(buffer,
+                                  reinterpret_cast<const uint8_t*>(recC),
+                                  strlen(recC) + 1);
+
+        std::cout << "Inserted:\n";
+        std::cout << "  A -> slot " << slotA << "\n";
+        std::cout << "  B -> slot " << slotB << "\n";
+        std::cout << "  C -> slot " << slotC << "\n\n";
+
+        // Delete Record B
+        std::cout << "Deleting slot " << slotB << " (Record-B)...\n";
+        delete_record(buffer, slotB);
+
+        // Insert Record D (should reuse slotB)
+        const char* recD = "Record-D";
+
+        int slotD = insert_record(buffer,
+                                  reinterpret_cast<const uint8_t*>(recD),
+                                  strlen(recD) + 1);
+
+        std::cout << "Inserted:\n";
+        std::cout << "  D -> slot " << slotD << " (should reuse slot "
+                  << slotB << ")\n\n";
+
+        // Write page back to disk
+        pager.write_page(page_id, buffer);
+    }
+
+    // -------------------------------
+    // READ PHASE
+    // -------------------------------
+    std::cout << "\n===============================\n";
+    std::cout << " Reopening DB and Reading Page\n";
+    std::cout << "===============================\n\n";
 
     uint8_t read_buffer[PAGE_SIZE];
     std::memset(read_buffer, 0, PAGE_SIZE);
 
-    auto read_start = std::chrono::high_resolution_clock::now();
-
     {
         Pager pager(db_file);
-
-        std::cout << "Reading page " << page_id << " from disk...\n";
         pager.read_page(page_id, read_buffer);
     }
 
-    auto read_end = std::chrono::high_resolution_clock::now();
-    auto read_time =
-        std::chrono::duration_cast<std::chrono::microseconds>(read_end - read_start);
+    const PageHeader* header =
+        reinterpret_cast<const PageHeader*>(read_buffer);
 
-    PageHeader* header =
-        reinterpret_cast<PageHeader*>(read_buffer);
+    std::cout << "Page slot_count = " << header->slot_count << "\n\n";
 
-    std::cout << "Read completed successfully.\n";
-    std::cout << "Read time: " << read_time.count() << " microsecond\n\n";
+    // Read all slots
+    std::cout << "Reading all records:\n";
 
-    /* ---------------- VERIFICATION ---------------- */
-    std::cout << "[PAGE VERIFICATION]\n";
+    for (int i = 0; i < header->slot_count; i++) {
+        uint8_t out[256];
+        uint16_t out_len = 0;
 
-    std::cout << "Page ID           : " << header->page_id << "\n";
-    std::cout << "Page Type         : " << static_cast<int>(header->page_type) << "\n";
-    std::cout << "Slot Count        : " << header->slot_count << "\n";
-    std::cout << "Free Space Start  : " << header->free_space_start << "\n";
-    std::cout << "Free Space End    : " << header->free_space_end << "\n\n";
+        bool ok = read_record(read_buffer, i, out, out_len);
 
-    std::cout << "==============================\n";
-    std::cout << " Storage Engine Test PASSED \n";
-    std::cout << "==============================\n";
+        if (!ok) {
+            std::cout << "  Slot " << i << " -> [DELETED]\n";
+        } else {
+            std::cout << "  Slot " << i << " -> " << out << "\n";
+        }
+    }
+
+    std::cout << "\n===============================\n";
+    std::cout << " Slot Reuse Test Completed \n";
+    std::cout << "===============================\n";
 
     return 0;
 }
