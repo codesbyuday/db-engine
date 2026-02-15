@@ -24,6 +24,7 @@ void Pager::write_page(uint32_t pageId, const uint8_t* buffer){
     
     //get current file-size
     //After seeking to SEEK_END, ftell returns the file size in bytes because the file position indicator is placed just after the last byte, not on it.
+    //offset: A long int value specifying the number of bytes to move from the reference point . It can be positive (move forward), negative (move backward), or zero.
     if(fseek(db_file, 0, SEEK_END) != 0 ){
         throw std::runtime_error("Fseek Failed {SEEK_END}");
     }
@@ -81,5 +82,11 @@ Pager::~Pager(){
     fclose(db_file);
     db_file = nullptr;
   }
-  std::cout<<"destructor called:::.."<<std::endl;
+  std::cout<<"File Closed:::.."<<std::endl;
+}
+
+int Pager::get_page_count(){
+    fseek(db_file, 0, SEEK_END);
+    int file_size = ftell(db_file);
+    return file_size/PAGE_SIZE;
 }

@@ -20,7 +20,7 @@ public:
     //page file operation
     void write_page(uint32_t pageId, const uint8_t* buffer); //Here buffer is const because it will reads data from the buffer and write it into disk
     void read_page(uint32_t pageId, uint8_t* buffer); // here buffer is not const bcz it will reads from disk and write into buffer so buffer is modified.
-
+    int get_page_count();
     ~Pager(); //destructor used for closing the file and cleanup
 };
 

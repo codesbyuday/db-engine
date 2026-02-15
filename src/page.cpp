@@ -13,11 +13,11 @@ void page_init(uint8_t* buffer, uint32_t pageId, PageType pageType){
     for(int i = sizeof(PageHeader); i<PAGE_SIZE; i++){
         buffer[i] = 0;
     }
-    std::cout<<header->page_id<< " "
-    <<header->free_space_start <<" "
-    <<header->free_space_end<< " "
-    <<static_cast<int>(header->page_type)
-    <<header->slot_count<<std::endl;
+    // std::cout<<header->page_id<< " "
+    // <<header->free_space_start <<" "
+    // <<header->free_space_end<< " "
+    // <<static_cast<int>(header->page_type)
+    // <<header->slot_count<<std::endl;
 }
 
 int insert_record(uint8_t* page_buffer, const uint8_t* record_data, uint16_t record_size){
@@ -30,7 +30,7 @@ int insert_record(uint8_t* page_buffer, const uint8_t* record_data, uint16_t rec
         Slot* slot = reinterpret_cast<Slot*>((page_buffer+PAGE_SIZE)-((i+1)*sizeof(Slot)));
         if(slot->length == 0){
             if(record_size > available)
-                throw std::runtime_error("Not enough space for record");
+                return -1;
 
             //else write record
             memcpy((page_buffer+(header->free_space_start)), record_data, record_size);
@@ -41,7 +41,7 @@ int insert_record(uint8_t* page_buffer, const uint8_t* record_data, uint16_t rec
         }
     }
     
-    if(required>available) throw std::runtime_error("Page Full can't insert more records");
+    if(required>available) return -1;
 
     //write record
 
