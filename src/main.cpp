@@ -2,6 +2,7 @@
 #include "pager.hpp"
 #include "table.hpp"
 #include "row.hpp"
+#include "meta.hpp"
 #include <iostream>
 #include <cstring>
 #include <string>
@@ -82,6 +83,8 @@ void PrintBanner()
 int main() {
     PrintBanner();
     Pager pager("mydb.db");
+    MetaManager meta(pager);
+    meta.init_if_needed();
     Table table(pager);
 
     uint32_t pageId = 1;

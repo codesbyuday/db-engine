@@ -21,6 +21,7 @@ struct recordPosition Table::table_insert(const uint8_t* record, uint16_t size){
     pager.read_page(last_pageId, buffer);
     int slot_id = insert_record(buffer, record, size);
     if(slot_id != -1){
+        
         pager.write_page(last_pageId, buffer);
         struct recordPosition pos = {last_pageId, slot_id};
         return pos;

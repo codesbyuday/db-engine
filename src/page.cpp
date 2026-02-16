@@ -29,8 +29,11 @@ int insert_record(uint8_t* page_buffer, const uint8_t* record_data, uint16_t rec
     for(int i = 0; i<header->slot_count; i++){
         Slot* slot = reinterpret_cast<Slot*>((page_buffer+PAGE_SIZE)-((i+1)*sizeof(Slot)));
         if(slot->length == 0){
-            if(record_size > available)
-                return -1;
+            if(record_size > available){
+                compact_page(page_buffer); //It will remove deleted record
+                available = header->free_space_end - header->free_space_start;
+                if(record_size>available){return -1;}
+            }
 
             //else write record
             memcpy((page_buffer+(header->free_space_start)), record_data, record_size);
@@ -95,5 +98,20 @@ bool delete_record(uint8_t * page_buffer, uint16_t slot_id){
 
     slot->length = 0;
     return true;
+}
+
+void compact_page(uint8_t *page_buffer){
+    PageHeader * header = reinterpret_cast<PageHeader*>(page_buffer);
+    uint16_t new_start_space = sizeof(PageHeader); //starts from the record area and move the all deleted space at las by movie moving all active record together
+    for(int i = 0; i<header->slot_count; i++){
+        Slot *slot = reinterpret_cast<Slot*>(page_buffer+PAGE_SIZE-((i+1)*sizeof(Slot)));
+        if(slot->length==0) continue;
+        uint16_t old_offset = slot->offset;
+        uint16_t old_length = slot->length;
+        memcpy(page_buffer+new_start_space, page_buffer+old_offset, old_length);
+        slot->offset = new_start_space;
+        new_start_space += old_length;
+    }
+    header->free_space_start = new_start_space;
 }
 

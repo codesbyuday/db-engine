@@ -33,4 +33,5 @@ int insert_record(uint8_t* page_buffer, const uint8_t* record_data, uint16_t rec
 bool read_record(const uint8_t* page_buffer, uint16_t slot_id, uint8_t* out_buffer, uint16_t &out_length);
 
 bool delete_record(uint8_t* page_buffer, uint16_t slot_id);
+void compact_page(uint8_t* page_buffer);
 #endif
