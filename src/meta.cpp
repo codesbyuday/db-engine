@@ -33,4 +33,5 @@ MetaPage MetaManager::read_meta(){
     uint8_t buffer[PAGE_SIZE];
     pager.read_page(0, buffer);
     memcpy(&meta, buffer, sizeof(MetaPage));
+    return meta;
 }

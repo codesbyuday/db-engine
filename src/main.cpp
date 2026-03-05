@@ -87,10 +87,10 @@ int main() {
     meta.init_if_needed();
     Table table(pager);
 
-    uint32_t pageId = 1;
-    uint8_t buffer[PAGE_SIZE];
-    memset(buffer, 0, PAGE_SIZE);
-    page_init(buffer, pageId, PageType::DataPage);
+    // uint32_t pageId = 1;
+    // uint8_t buffer[PAGE_SIZE];
+    // memset(buffer, 0, PAGE_SIZE);
+    // page_init(buffer, pageId, PageType::DataPage);
     while(true){
         std::string userInput;
         std::cout << GREEN << BOLD << "db_query> " << RESET;
